@@ -7,11 +7,15 @@ export class SubscriptionsController {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
 
   @Post()
-  async create(
+  async createOnlineSubscription(
     @Req() req,
     @Body() createSubscriptionDto: CreateSubscriptionDto,
   ) {
     // const userId = req.user.userId;
-    return await this.subscriptionsService.create(1, createSubscriptionDto);
+    return await this.subscriptionsService.create(
+      1,
+      createSubscriptionDto,
+      'ONLINE',
+    );
   }
 }

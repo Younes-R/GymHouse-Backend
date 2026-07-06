@@ -6,8 +6,10 @@ import {
 import { DatabaseService } from 'src/database/database.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { PlanType } from 'generated/prisma/enums';
+import { PaymentMethod } from 'generated/prisma/enums';
 import { Prisma } from 'generated/prisma/client';
 import { PaymentsService } from 'src/payments/payments.service';
+import { Checkout } from 'src/chargily-pay/interfaces/checkout.interface';
 
 @Injectable()
 export class SubscriptionsService {
@@ -39,6 +41,7 @@ export class SubscriptionsService {
   }
 
   private async getPaidOverlappingSubscriptions(
+    userId: number,
     startDate: Date,
     endDate: Date,
   ) {
@@ -49,6 +52,7 @@ export class SubscriptionsService {
     FROM "Subscription" s
     JOIN "Payment" p ON p."subscriptionId" = s."subscriptionId"
     WHERE p."paymentStatus" = 'PAID'
+    AND s."userId" = ${userId}
     AND s."subscrptionTime" && tstzrange(${startDate.toISOString()}, ${endDate.toISOString()}, '[)') 
     `;
   }
@@ -94,7 +98,11 @@ export class SubscriptionsService {
     return created;
   }
 
-  async create(userId: number, createSubscriptionDto: CreateSubscriptionDto) {
+  async create(
+    userId: number,
+    createSubscriptionDto: CreateSubscriptionDto,
+    paymentMethod: PaymentMethod,
+  ) {
     const plan = await this.databaseService.plan.findUnique({
       where: {
         planId: createSubscriptionDto.planId,
@@ -112,6 +120,7 @@ export class SubscriptionsService {
     );
 
     const paidOverlappingSubs = await this.getPaidOverlappingSubscriptions(
+      userId,
       startDate,
       endDate,
     );
@@ -130,17 +139,21 @@ export class SubscriptionsService {
         endDate,
       );
 
-      const checkout = await this.paymentService.createCheckout(plan.price);
+      let checkout: Checkout | null = null;
+      if (paymentMethod === 'ONLINE') {
+        checkout = await this.paymentService.createCheckout(plan.price);
+      }
 
       const payment = await this.databaseService.payment.create({
         data: {
           subscriptionId: subscription.subscriptionId,
-          paymentMethod: 'ONLINE',
-          transactionId: checkout.id,
+          paymentMethod,
+          transactionId: checkout ? checkout.id : null,
+          paymentStatus: paymentMethod === 'CASH' ? 'PAID' : 'PENDING',
         },
       });
 
-      return { subscription, checkout_url: checkout.checkout_url };
+      return { subscription, checkout_url: checkout?.checkout_url };
     } catch (err: any) {
       if (
         err instanceof Prisma.PrismaClientKnownRequestError &&
