@@ -3,6 +3,7 @@ import {
   IsDateString,
   IsEmail,
   IsEnum,
+  IsISO8601,
   IsNotEmpty,
   IsNumber,
   MinLength,
@@ -34,6 +35,7 @@ export class CreateUserDto {
 
   @IsNotEmpty()
   @IsDateString()
+  @IsISO8601()
   birthDate!: string;
 
   @IsNotEmpty()

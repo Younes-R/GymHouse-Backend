@@ -17,9 +17,11 @@ export class UsersService {
     const hash = await bcrypt.hash(createUserDto.password, salt);
 
     try {
+      const birthDate = new Date(createUserDto.birthDate);
       return await this.databaseService.user.create({
         data: {
           ...createUserDto,
+          birthDate,
           password: hash,
           userType: 'CLIENT',
         },
