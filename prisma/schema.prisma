@@ -36,6 +36,8 @@ enum PaymentStatus {
   FAILED
   CANCELED
   EXPIRED
+  REFUND_REQUIRED
+  REFUNDED
 }
 
 enum PaymentMethod {

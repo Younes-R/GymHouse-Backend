@@ -34,7 +34,7 @@ export class CreateUserDto {
 
   @IsNotEmpty()
   @IsDateString()
-  birthDate!: Date;
+  birthDate!: string;
 
   @IsNotEmpty()
   @IsEnum(Gender)
