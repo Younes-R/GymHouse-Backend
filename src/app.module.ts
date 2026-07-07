@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { PlansModule } from './plans/plans.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { PaymentsModule } from './payments/payments.module';
+import { SessionsModule } from './sessions/sessions.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { PaymentsModule } from './payments/payments.module';
     PlansModule,
     SubscriptionsModule,
     PaymentsModule,
+    SessionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
