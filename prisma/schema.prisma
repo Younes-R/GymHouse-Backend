@@ -56,6 +56,7 @@ model User {
   gender        Gender
   userType      UserType
   subscriptions Subscription[]
+  attendances   Attendance[]
 }
 
 model Plan {
@@ -92,4 +93,12 @@ model Session {
   sessionId   Int                      @id @default(autoincrement())
   sessionTime Unsupported("tstzrange")
   gender      Gender
+}
+
+model Attendance {
+  attendanceId Int       @id @default(autoincrement())
+  startedAt    DateTime
+  endedAt      DateTime?
+  userId       Int
+  user         User      @relation(fields: [userId], references: [userId])
 }

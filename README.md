@@ -21,6 +21,11 @@ at the webhook:
 
 - client reaches gym door, scans a QR code (or alternatively: clicks a 'Open Door' button which triggers a request to the API. I was thinking in making the QR code the requested URL, so those two methods are basically the same)
 - request sent to `POST /gym/door`
-- backend verifies if the client has a valid subscription that day, if he did not attend beforethat day, and if his gender is the same as the one mentioned in the sessions schedule
-  if yes: send a response to open the door; a response with ACTION='OPEN_DOOR' or ACCESS='ALLOWED' to the door, and a confirmation msg (or 200 OK) to the user mobile
+- backend verifies:
+  - if the client has a valid subscription that day,
+  - if he did not attend before that day,
+  - and if his gender is the same as the one mentioned in the sessions schedule
+
+  if yes: send a response to open the door; a response with ACTION='OPEN_DOOR' or ACCESS='ALLOWED' to the door, and a confirmation msg (or 200 OK) to the user mobile, and register the attendance
+
   if no: send a response to user to inform him that access is denied

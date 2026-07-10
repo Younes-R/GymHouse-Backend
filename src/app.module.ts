@@ -9,6 +9,8 @@ import { PlansModule } from './plans/plans.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { PaymentsModule } from './payments/payments.module';
 import { SessionsModule } from './sessions/sessions.module';
+import { HallsModule } from './halls/halls.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { SessionsModule } from './sessions/sessions.module';
     SubscriptionsModule,
     PaymentsModule,
     SessionsModule,
+    HallsModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
