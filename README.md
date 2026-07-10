@@ -29,3 +29,7 @@ at the webhook:
   if yes: send a response to open the door; a response with ACTION='OPEN_DOOR' or ACCESS='ALLOWED' to the door, and a confirmation msg (or 200 OK) to the user mobile, and register the attendance
 
   if no: send a response to user to inform him that access is denied
+
+## Bugs:
+
+- in `paymentsService`, `getPaidOverlappingSubscriptions` should search also follwing a userId to fins paid overlapping subs of a user!

@@ -13,7 +13,7 @@ export class SubscriptionsController {
   ) {
     // const userId = req.user.userId;
     return await this.subscriptionsService.create(
-      1,
+      7,
       createSubscriptionDto,
       'ONLINE',
     );
