@@ -1,7 +1,14 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { PlansService } from './plans.service';
 import { UpdatePlanDto } from './dto/update-plan.dto';
-import { PlanIdParam } from './dto/planId-param.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { RolesGuard } from 'src/auth/roles.guard';
 import { Roles } from 'src/auth/roles.decorator';
@@ -20,9 +27,9 @@ export class PlansController {
   @Roles('ADMIN')
   @Post(':id/update-price')
   async updatePrice(
-    @Param() param: PlanIdParam,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updatePlanDto: UpdatePlanDto,
   ) {
-    return await this.plansService.updatePrice(+param.id, updatePlanDto.price);
+    return await this.plansService.updatePrice(id, updatePlanDto.price);
   }
 }
