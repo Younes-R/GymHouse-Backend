@@ -1,7 +1,9 @@
-import { Body, Controller, Post, Req } from '@nestjs/common';
+import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
+import { AuthGuard } from 'src/auth/auth.guard';
 
+@UseGuards(AuthGuard)
 @Controller('subscriptions')
 export class SubscriptionsController {
   constructor(private readonly subscriptionsService: SubscriptionsService) {}
@@ -11,9 +13,9 @@ export class SubscriptionsController {
     @Req() req,
     @Body() createSubscriptionDto: CreateSubscriptionDto,
   ) {
-    // const userId = req.user.userId;
+    const userId = req.user.userId;
     return await this.subscriptionsService.create(
-      7,
+      userId,
       createSubscriptionDto,
       'ONLINE',
     );

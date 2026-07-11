@@ -7,11 +7,17 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import { SessionsService } from './sessions.service';
 import { CreateSessionDto } from './dto/create-session.dto';
 import { UpdateSessionDto } from './dto/update-session.dto';
+import { AuthGuard } from 'src/auth/auth.guard';
+import { RolesGuard } from 'src/auth/roles.guard';
+import { Roles } from 'src/auth/roles.decorator';
 
+@UseGuards(AuthGuard, RolesGuard)
+@Roles('ADMIN')
 @Controller('sessions')
 export class SessionsController {
   constructor(private readonly sessionsService: SessionsService) {}
@@ -21,6 +27,7 @@ export class SessionsController {
     return await this.sessionsService.create(createSessionDto);
   }
 
+  @Roles('ADMIN', 'CLIENT')
   @Get()
   async findAll() {
     return await this.sessionsService.findAll();
