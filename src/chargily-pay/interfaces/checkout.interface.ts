@@ -22,7 +22,7 @@ export interface Checkout {
   payment_link_id: string | null;
   created_at: number;
   updated_at: number;
-  shipping_address: string | null;
+  shipping_address: string | null | any;
   collect_shipping_address: boolean | any;
   discount: {
     type: 'percentage' | 'amount';

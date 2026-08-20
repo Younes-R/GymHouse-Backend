@@ -10,12 +10,15 @@ import { PaymentMethod } from 'generated/prisma/enums';
 import { Prisma } from 'generated/prisma/client';
 import { PaymentsService } from 'src/payments/payments.service';
 import { Checkout } from 'src/chargily-pay/interfaces/checkout.interface';
+import { PgmqService } from 'src/pgmq/pgmq.service';
+import { QueueName } from 'src/pgmq/enums/queue-name.enum';
 
 @Injectable()
 export class SubscriptionsService {
   constructor(
     private databaseService: DatabaseService,
     private paymentService: PaymentsService,
+    private pgmqService: PgmqService,
   ) {}
 
   private getSubscriptionEndDate(
@@ -142,6 +145,13 @@ export class SubscriptionsService {
       let checkout: Checkout | null = null;
       if (paymentMethod === 'ONLINE') {
         checkout = await this.paymentService.createCheckout(plan.price);
+        await this.pgmqService.send(
+          QueueName.PAYMENTS_CHECKS_QUEUE,
+          {
+            transactionId: checkout.id,
+          },
+          60 * 15,
+        );
       }
 
       const payment = await this.databaseService.payment.create({

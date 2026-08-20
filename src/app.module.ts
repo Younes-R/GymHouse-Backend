@@ -11,9 +11,12 @@ import { PaymentsModule } from './payments/payments.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { HallsModule } from './halls/halls.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { PgmqModule } from './pgmq/pgmq.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -26,6 +29,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
     SessionsModule,
     HallsModule,
     AnalyticsModule,
+    PgmqModule,
   ],
   controllers: [AppController],
   providers: [AppService],

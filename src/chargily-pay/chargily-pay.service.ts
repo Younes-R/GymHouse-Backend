@@ -54,6 +54,29 @@ export class ChargilyPayService {
     }
   }
 
+  async getCheckout(id: string) {
+    const options = {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${this.CHARGILY_PAY_SECRET_KEY}`,
+        'Content-type': 'application/json',
+      },
+    };
+
+    try {
+      const checkoutResponse = await fetch(
+        `${this.CHARGILY_PAY_BASE_URL}/${id}`,
+        options,
+      );
+
+      if (!checkoutResponse.ok) throw new Error(await checkoutResponse.text());
+
+      return await checkoutResponse.json();
+    } catch (err) {
+      throw new Error('Could not get checkout', { cause: err });
+    }
+  }
+
   verifyRequest(
     signatureHeader: string,
     request: Request & { rawBody: string },
