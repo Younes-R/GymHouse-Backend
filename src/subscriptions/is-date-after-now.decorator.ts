@@ -11,11 +11,21 @@ export class IsDateAfterNowConstraint implements ValidatorConstraintInterface {
   private isDateAfterNow(dateString: string) {
     const date = new Date(dateString);
     const now = new Date();
-    return (
-      date.getUTCFullYear() >= now.getUTCFullYear() &&
-      date.getUTCMonth() >= now.getUTCMonth() &&
-      date.getUTCDate() >= now.getUTCDate()
-    );
+
+    return date.getUTCFullYear() > now.getUTCFullYear()
+      ? true
+      : date.getUTCFullYear() == now.getUTCFullYear() &&
+          date.getUTCMonth() > now.getUTCMonth()
+        ? true
+        : date.getUTCFullYear() == now.getUTCFullYear() &&
+            date.getUTCMonth() == now.getUTCMonth() &&
+            date.getUTCDate() > now.getUTCDate()
+          ? true
+          : date.getUTCFullYear() == now.getUTCFullYear() &&
+              date.getUTCMonth() == now.getUTCMonth() &&
+              date.getUTCDate() == now.getUTCDate()
+            ? true
+            : false;
   }
 
   validate(date: string, args: ValidationArguments) {
