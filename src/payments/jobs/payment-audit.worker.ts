@@ -11,16 +11,18 @@ import { PgmqService } from 'src/pgmq/pgmq.service';
 import { ChargilyPayService } from 'src/chargily-pay/chargily-pay.service';
 import { Checkout } from 'src/chargily-pay/interfaces/checkout.interface';
 import { PaymentStatus } from 'generated/prisma/enums';
+import { PaymentsService } from '../payments.service';
 
 @Injectable()
-export class PaymentStatusWorker implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(PaymentStatusWorker.name);
+export class PaymentAuditWorker implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(PaymentAuditWorker.name);
   private isRunning = false;
 
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly pgmqService: PgmqService,
     private readonly chargilyPayService: ChargilyPayService,
+    private readonly paymentsService: PaymentsService,
   ) {}
 
   async onModuleInit() {
@@ -75,6 +77,8 @@ export class PaymentStatusWorker implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    let updatedPayment;
+
     if (payment.paymentStatus === 'PENDING') {
       const updatedCheckout: Checkout =
         await this.chargilyPayService.getCheckout(
@@ -83,7 +87,7 @@ export class PaymentStatusWorker implements OnModuleInit, OnModuleDestroy {
 
       if (updatedCheckout.status === 'processing') return;
 
-      await this.databaseService.payment.update({
+      updatedPayment = await this.databaseService.payment.update({
         where: {
           paymentId: payment.paymentId,
         },
@@ -96,11 +100,35 @@ export class PaymentStatusWorker implements OnModuleInit, OnModuleDestroy {
       });
     }
 
+    if (
+      payment.paymentStatus === 'PAID' ||
+      (updatedPayment && updatedPayment.paymentStatus === 'PAID')
+    ) {
+      const paidOverlappingSubs =
+        await this.paymentsService.getPaidOverlappingSubscriptions(
+          message.message.transactionId,
+        );
+
+      if (paidOverlappingSubs.length > 0) {
+        this.logger.debug(
+          `Payment with transactionId ${message.message.transactionId.slice(0, 8)}... must be refunded`,
+        );
+        await this.databaseService.payment.update({
+          where: {
+            paymentId: updatedPayment
+              ? updatedPayment.paymentId
+              : payment.paymentId,
+          },
+          data: {
+            paymentStatus: 'REFUND_REQUIRED',
+          },
+        });
+      }
+    }
+
     await this.pgmqService.delete(
       QueueName.PAYMENTS_CHECKS_QUEUE,
       Number(message.msg_id),
     );
-
-    // console.log('Done with transcation of ID=' + payment.transactionId);
   }
 }

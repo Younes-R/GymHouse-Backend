@@ -20,7 +20,7 @@ export class PaymentsService {
     return await this.chargilyPayService.createCheckout(amount);
   }
 
-  private async getPaidOverlappingSubscriptions(transactionId: string) {
+  async getPaidOverlappingSubscriptions(transactionId: string) {
     try {
       const [{ lower, upper }] = (await this.databaseService.$queryRaw`
           SELECT 
@@ -44,6 +44,7 @@ export class PaymentsService {
             WHERE p."transactionId" = ${transactionId}
           )
           AND s."subscrptionTime" && tstzrange(${lower.toISOString()}, ${upper.toISOString()}, '[)')
+          AND p."transactionId" <> ${transactionId}
           `;
     } catch (err: any) {
       console.error(err);

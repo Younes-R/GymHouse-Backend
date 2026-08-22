@@ -139,7 +139,7 @@ msg with id=4 should be deleted
 
 if pgmq.send fails to execute, should we deny the subscription operation, or continue it (and like that considering the error of pgmq.send recoverable then?)
 
-### Payment Checker Background Job
+## Payment Checker Background Job
 
 1. get the PGMQ message
 2. from the db, get the payment record with transactionId from the PGMQ msg
@@ -162,3 +162,15 @@ SELECT "transactionId"
 FROM payments
 WHERE "paymentStatus" = "ONLINE";
 ```
+
+## Update to The Cron Job
+
+after re-evaluating again, we may have found a better way to detect double payments than using a cron job that scans the whole payments table (while being joined with the subs and users tables): we use a background worker!
+
+while the cron job will run the payment verification for all users, all subs and all related payment records, which is very compute intensive; a background worker that gets triggered after 15min from the payment registration time that will only verify that specific payment with its related user and subs, which is fat less compute intensive!
+
+Basically, we can say that the cron job will be doing a many-to-many Join and verification operation, while the background worker will be doing a one-to-many join and verification operation
+
+besides, the worker will scale better than the cron job later: the worker will scale linearly with the number of payments recieved, while the cron job will get slower and slower each time the payments, subs or users tables grow
+
+in addition, if the worker fails in a certain msg, that msg will be back to the queue for it to be re-processed again the next time; while if the cron job fails in its batch operation, all of the batch will be delayed until the next execution (we were thinking in running the cron job once every night)

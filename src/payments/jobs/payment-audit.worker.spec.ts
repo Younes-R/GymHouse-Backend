@@ -1,15 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { PaymentStatusWorker } from './payment-status.worker';
+import { PaymentAuditWorker } from './payment-audit.worker';
 
-describe('PaymentStatusWorker', () => {
-  let worker: PaymentStatusWorker;
+describe('PaymentAuditWorker', () => {
+  let worker: PaymentAuditWorker;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [PaymentStatusWorker],
+      providers: [PaymentAuditWorker],
     }).compile();
 
-    worker = module.get<PaymentStatusWorker>(PaymentStatusWorker);
+    worker = module.get<PaymentAuditWorker>(PaymentAuditWorker);
   });
 
   it('should be defined', () => {
