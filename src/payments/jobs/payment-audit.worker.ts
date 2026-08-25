@@ -44,7 +44,7 @@ export class PaymentAuditWorker implements OnModuleInit, OnModuleDestroy {
 
         // if queue is empty, pause for 2s to save DB CPU
         if (!messages || messages.length === 0) {
-          this.logger.log('Message queue is empty. Waiting for 2secs...');
+          // this.logger.log('Message queue is empty. Waiting for 2secs...');
           await new Promise((resolve) => setTimeout(resolve, 2000));
           continue;
         }

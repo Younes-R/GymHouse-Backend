@@ -13,6 +13,7 @@ import { HallsModule } from './halls/halls.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PgmqModule } from './pgmq/pgmq.module';
+import { MqttModule } from './mqtt/mqtt.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { PgmqModule } from './pgmq/pgmq.module';
     HallsModule,
     AnalyticsModule,
     PgmqModule,
+    MqttModule,
   ],
   controllers: [AppController],
   providers: [AppService],

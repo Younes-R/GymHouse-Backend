@@ -174,3 +174,92 @@ Basically, we can say that the cron job will be doing a many-to-many Join and ve
 besides, the worker will scale better than the cron job later: the worker will scale linearly with the number of payments recieved, while the cron job will get slower and slower each time the payments, subs or users tables grow
 
 in addition, if the worker fails in a certain msg, that msg will be back to the queue for it to be re-processed again the next time; while if the cron job fails in its batch operation, all of the batch will be delayed until the next execution (we were thinking in running the cron job once every night)
+
+## Implementing IOT Control over Physical Gym Access
+
+**objectives**:
+
+- act as a security system to only allow registered members, with active sessions and within their allowed time schedule to access the gym
+- act as an attendance registration system
+
+### Implmentation
+
+- **1st method**: the gym door has an IOT device that can open it, in addition to a screen device that displays a timed auto-generated QR code the members need to scan with their phones to open the door. the flow should be:
+  - a member scans the QR code with the mobile client app
+  - the client sends a request to nest API on endpoint `POST halls/:qr-code`
+  - the nest backend verfies if the qr code is expired*, if the user has a payed subscription that day, and if the session time is located for his registered gender (male or female)
+  - if verification passed, publish an MQTT msg to open the door. then, the IOT device should open it
+  - else, we send an error msg to the mobile client app for explanation (e.g: 'you did not pay', 'wrong session time'...etc)
+
+*the QR code repreents a generated authorization token with a short expiration time (15-30secs) that is created and sent to the IOT device by the nest backend. the short expiration time purpose is to deny the sharing the QR code via screenshot-ing and sending to other people (by the time the user takes the screenshot, opens a messaging app, chooses the photo and clicks 'send', the token would be expired)
+
+- **2nd method**: we rely fully on MQTT for the whole communication process. here, we have an IOT device that opens the door and a QR scanner (or any code scanner). No screen device is needed. the flow is as follows:
+  - a member opens the mobile device and shows a QR code representing their userId to the IOT scanner
+  - the scanner sends the code via MQTT to nest
+  - nest runs verification (if the user has a paid sub....)
+  - if verification is passed, nest sends an `ACCESS_GRANTED` msg to the door IOT device via MQTT, then the door is opened
+  - else, nest sends an `ACCESS_DENIED` msg via MQTT to the door IOT device, then the latter makes a "pip" sound that represents a 'feedback' or 'response' telling them their access is denied (instead of doing nothing and letting the user hanging not knowing if his request got processed or not)
+
+in both methods, if the verification is passed, we register the attendance of the member on the db
+
+### Flaws
+
+we feel there is a serious flaw in this system, not in the implementaion, but rather in its objectives:
+
+- if a group of members (e.g: s three friends) comes to the gym together, each one must enter individually (interact with IOT device, door gets open, THEN they has to close the door behind them) or the attendance system will be broken (we register the attendance of the 1st person and lose the attendance info of the next persons). This cannot happen since the 1st person will leave the door open for their friends to enter
+
+thus, a better idea is to use those security doors we find in airports (or train stations or malls) that have a place to scan something for a steel/metal hand to get elevated/moved to enter to register the attendance
+
+but for the 1st objective (security), we don't know what to propose. do we leave the usual door type?
+
+### MQTT topics:
+
+- turnstiles/:turnstileId/enter/scan (nest subscribes to)
+
+- turnstiles/:turnstileId/enter/command (turnstile subscribes to)
+
+- turnstiles/:turnstileId/exit (nest subscribes to)
+
+## Testing MQTT
+
+we can use the MQTT CLI from mqtt.js:
+
+- to publish a message:
+
+```powershell
+'{"userId":4}' | mqtt publish `
+>>   -h "HOSTNAME" `
+>>   -p 8883 `
+>>   -C mqtts `
+>>   -u "USERNAME" `
+>>   -P 'PASSWORD' `
+>>   -t "TOPIC" `
+>>   -s
+```
+
+`'{"userId":4}'` is an example of a JSON payload. we piped it through STDIN because using the `-m` flag did not work for JSON (the `'` and/or `"` were being removed)
+
+- to subscribe to a topic:
+
+```powershell
+mqtt sub -h "HOSTNAME" -p 8883 -l mqtts -u "USERNAME" -P 'PASSWORD' -t "TOPIC"
+```
+
+```ts
+function matchesMqttTopic(filter: string, topic: string): boolean {
+  const filterLevels = filter.split('/');
+  const topicLevels = topic.split('/');
+
+  if (filterLevels.length !== topicLevels.length) {
+    return false;
+  }
+
+  return filterLevels.every(
+    (level, index) => level === '+' || level === topicLevels[index],
+  );
+}
+```
+
+## Important Point on MQTT QOS
+
+Remember that QoS 2 delivery requires the subscriber to also subscribe with QoS 2 if you want end-to-end QoS 2 behavior.

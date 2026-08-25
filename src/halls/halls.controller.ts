@@ -14,16 +14,16 @@ import { AuthGuard } from 'src/auth/auth.guard';
 export class HallsController {
   constructor(private readonly hallsService: HallsService) {}
 
-  @HttpCode(HttpStatus.OK)
-  @Post('enter')
-  async requestAccess(@Req() req) {
-    const userId: number = req.user.userId;
-    return await this.hallsService.requestAccess(userId);
-  }
+  // @HttpCode(HttpStatus.OK)
+  // @Post('enter')
+  // async requestAccess(@Req() req) {
+  //   const userId: number = req.user.userId;
+  //   return await this.hallsService.requestAccess(userId);
+  // }
 
-  @Post('exit')
-  async registerExit(@Req() req) {
-    const userId: number = req.user.userId;
-    return await this.hallsService.registerExit(userId);
-  }
+  // @Post('exit')
+  // async registerExit(@Req() req) {
+  //   const userId: number = req.user.userId;
+  //   return await this.hallsService.registerExit(userId);
+  // }
 }
