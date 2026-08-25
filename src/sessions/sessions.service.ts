@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { CreateSessionDto } from './dto/create-session.dto';
-import { Gender, Prisma } from 'generated/prisma/client';
+import { DayOfWeek, Gender, Prisma } from 'generated/prisma/client';
 import { UpdateSessionDto } from './dto/update-session.dto';
 
 @Injectable()
@@ -13,23 +13,28 @@ export class SessionsService {
   constructor(private databaseService: DatabaseService) {}
 
   async create(createSessionDto: CreateSessionDto) {
-    const start = new Date(createSessionDto.startTime);
-    const end = new Date(createSessionDto.endTime);
-
     try {
       const [createdSession] = await this.databaseService.$queryRaw<
-        Array<{ sessionId: number; start: Date; end: Date; gender: Gender }>
+        Array<{
+          sessionId: number;
+          gender: Gender;
+          day: DayOfWeek;
+          timeSlot: string;
+          start: Date;
+          end: Date;
+        }>
       >`
-    INSERT INTO "Session" ("sessionTime", "gender")
-    VALUES (
-        tstzrange(${start.toISOString()}, ${end.toISOString()}, '[)'),
-        ${createSessionDto.gender}
-    )
-    RETURNING
-      "sessionId",
-      lower("sessionTime") AS start,
-      upper("sessionTime") AS end,
-      "gender"
+      INSERT INTO "Session"("gender", "day", "timeSlot")
+      VALUES (
+        ${createSessionDto.gender}, ${createSessionDto.day}, timerange(${createSessionDto.startTime}, ${createSessionDto.endTime}, '[)')
+      )
+      RETURNING
+        "sessionId",
+        "gender",
+        "day",
+        "timeSlot",
+        lower("timeSlot") AS start,
+        upper("timeSlot") AS end
     `;
       return createdSession;
     } catch (err: any) {
@@ -59,9 +64,16 @@ export class SessionsService {
   async findAll() {
     try {
       return await this.databaseService.$queryRaw<
-        Array<{ sessionId: number; start: Date; end: Date; gender: Gender }>
+        Array<{
+          sessionId: number;
+          gender: Gender;
+          day: DayOfWeek;
+          timeSlot: string;
+          start: Date;
+          end: Date;
+        }>
       >`
-      SELECT "sessionId", lower("sessionTime") AS start, upper("sessionTime") AS end, "gender"
+      SELECT "sessionId", "gender", "day", "timeSlot", lower("timeSlot") AS start, upper("timeSlot") AS end
       FROM "Session"
       `;
     } catch (err) {
@@ -71,41 +83,44 @@ export class SessionsService {
   }
 
   async update(sessionId: number, updateSessionDto: UpdateSessionDto) {
-    const newStart = updateSessionDto.startTime
-      ? new Date(updateSessionDto.startTime)
-      : null;
-    const newEnd = updateSessionDto.endTime
-      ? new Date(updateSessionDto.endTime)
-      : null;
+    const newStart = updateSessionDto.startTime;
+    const newEnd = updateSessionDto.endTime;
 
     try {
       const [updated] = await this.databaseService.$queryRaw<
         Array<{
           sessionId: number;
+          gender: Gender;
+          day: DayOfWeek;
+          timeSlot: string;
           start: Date;
           end: Date;
-          gender: Gender;
         }>
       >`
     UPDATE "Session"
     SET 
       "gender" = COALESCE(${updateSessionDto.gender}, "gender"),
-      "sessionTime" = CASE
-        WHEN ${newStart}::timestamptz IS NOT NULL AND ${newEnd}::timestamptz IS NOT NULL
-          THEN tstzrange(${newStart?.toISOString()}, ${newEnd?.toISOString()}, '[)')
-        WHEN ${newStart}::timestamptz IS NOT NULL
-          THEN tstzrange(${newStart?.toISOString()}, upper("sessionTime"), '[)')
-        WHEN ${newEnd}::timestamptz IS NOT NULL
-          THEN tstzrange(lower("sessionTime"), ${newEnd?.toISOString()}, '[)')
-        ELSE "sessionTime"
+      "day" = COALESCE(${updateSessionDto.day}, "day"),
+      "timeSlot" = CASE
+        WHEN ${newStart}::TIME IS NOT NULL AND ${newEnd}::TIME IS NOT NULL
+          THEN timerange(${newStart}, ${newEnd}, '[)')
+        WHEN ${newStart}::TIME IS NOT NULL
+          THEN timerange(${newStart}, upper("timeSlot"), '[)')
+        WHEN ${newEnd}::TIME IS NOT NULL
+          THEN timerange(lower("timeSlot"), ${newEnd}, '[)')
+        ELSE "timeSlot"
       END
     WHERE "sessionId" = ${sessionId}
     RETURNING 
       "sessionId",
-      lower("sessionTime") AS start,
-      upper("sessionTime") AS end,
-      "gender"
+      "gender",
+      "day",
+      "timeSlot",
+      lower("timeSlot") AS start,
+      upper("timeSlot") AS end
     `;
+
+      if (!updated) throw new BadRequestException('No session found');
 
       return updated;
     } catch (err: any) {
@@ -124,10 +139,18 @@ export class SessionsService {
             );
             break;
 
+          case '22007':
+            throw new BadRequestException(
+              'Invalid input syntax for startTime or endTime',
+            );
+
           default:
             break;
         }
       }
+
+      if (err instanceof BadRequestException) throw err;
+
       console.error(err);
       throw new InternalServerErrorException();
     }
@@ -136,15 +159,24 @@ export class SessionsService {
   async delete(sessionId: number) {
     try {
       const deletedSessions = await this.databaseService.$queryRaw<
-        Array<{ sessionId: number; start: Date; end: Date; gender: Gender }>
+        Array<{
+          sessionId: number;
+          gender: Gender;
+          day: DayOfWeek;
+          timeSlot: string;
+          start: Date;
+          end: Date;
+        }>
       >`
       DELETE FROM "Session"
       WHERE "sessionId" = ${sessionId}
       RETURNING
         "sessionId",
-        lower("sessionTime") AS start,
-        upper("sessionTime") AS end,
-        "gender"
+        "gender",
+        "day",
+        "timeSlot",
+        lower("timeSlot") AS start,
+        upper("timeSlot") AS end
       `;
 
       if (deletedSessions.length === 0) {

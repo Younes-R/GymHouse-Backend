@@ -263,3 +263,55 @@ function matchesMqttTopic(filter: string, topic: string): boolean {
 ## Important Point on MQTT QOS
 
 Remember that QoS 2 delivery requires the subscriber to also subscribe with QoS 2 if you want end-to-end QoS 2 behavior.
+
+## Important Note on Debugging Prisma
+
+we encountered this error message from prisma
+
+```powershell
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma\schema.prisma.
+Datasource "db": PostgreSQL database "gymhouse", schema "public" at "localhost:5432"
+
+- The migration `20260825201355_add_constraints_session_table` failed.
+- The migration `20260825201355_add_constraints_session_table` was modified after it was applied.
+
+We need to reset the "public" schema at "localhost:5432"
+
+You may use prisma migrate reset to drop the development database.
+All data will be lost.
+```
+
+after trying to apply the following migration (then correcting the error in it in the same file)
+
+```sql
+ALTER TABLE "Session"
+ADD CONSTRAINT valid_timeSlot_range CHECK(lower('timeSlot') < upper("timeSlot"));
+
+ALTER TABLE "Session"
+ADD CONSTRAINT no_overlapping_sessions
+EXCLUDE USING Gist(
+    "day" WITH =,
+    "timeSlot" WITH &&
+);
+```
+
+we did not go with the reset option since it is 'meaningless' (and costly as well since we're losing all sample data) here: the migration contained only one error at the 2nd line which is the use of `'` instead of `"`, so the migration did not even run, no damage was done to any table, and even if, the migration is only modifying a single table, that has no foreign keys to any other table, so a completely isolated case.
+
+we tried running `npx prisma migrate resolve --rolled-back "20260825201355_add_constraints_to_session_table"`, but it did not work in this case. It may be due to Prisma still keeping a migration record on `_prisma_migrations` table
+
+instead, we:
+
+- deleted the migration record from `_prisma_migrations` table:
+
+```sql
+DELETE FROM _prisma_migrations
+WHERE migration_name = '20260825203043_add_constraints_to_session_table';
+```
+
+- deleted the migration folder in `prisma/migrations`
+
+- created a new migration and re-tried again
+
+then, it worked!
