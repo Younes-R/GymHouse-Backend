@@ -1,5 +1,46 @@
 # GymHouse Backend
 
+## Docker Setup
+
+1. Copy [.env.docker.example](.env.docker.example) to `.env.docker` and fill real values.
+2. Start Postgres:
+
+```powershell
+docker compose up -d db
+```
+
+3. Apply Prisma migrations:
+
+```powershell
+docker compose --profile migrate up --build migrate
+```
+
+4. Start the API:
+
+```powershell
+docker compose up --build -d app
+```
+
+5. Check logs:
+
+```powershell
+docker compose logs -f app
+```
+
+6. Stop everything:
+
+```powershell
+docker compose down
+```
+
+##
+
+Notes:
+
+- API is exposed on `http://localhost:3000`.
+- Postgres data is persisted in Docker volume `db_data`.
+- Run migrations again whenever you add a new Prisma migration.
+
 Hello! If you are reading this, well.. it's a bit messy . most of my writings down are to clear ideas during development
 
 ## Notes

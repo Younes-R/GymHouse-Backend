@@ -1,0 +1,48 @@
+services:
+  db:
+    image: postgres:16
+    container_name: gymhouse-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gymhouse
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d gymhouse"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  migrate:
+    build:
+      context: .
+      target: build
+    env_file:
+      - .env.docker
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["pnpm", "prisma", "migrate", "deploy"]
+    profiles:
+      - migrate
+
+  app:
+    build:
+      context: .
+      target: runner
+    container_name: gymhouse-api
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
+volumes:
+  db_data:
